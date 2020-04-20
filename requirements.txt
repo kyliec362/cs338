@@ -1,0 +1,3 @@
+google-cloud-language
+flask
+azure-cognitiveservices-search-newssearch
