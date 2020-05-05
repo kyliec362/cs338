@@ -2,17 +2,15 @@ from google.cloud import language
 from google.cloud.language import enums
 from google.cloud.language import types
 import sys
-
+import requests
 from azure.cognitiveservices.search.newssearch import NewsSearchClient
 from msrest.authentication import CognitiveServicesCredentials
-bing_key = "26f01699e36041989f1ae3119eab4a29"
-bing_client = NewsSearchClient(credentials=CognitiveServicesCredentials(bing_key),endpoint="https://api.cognitive.microsoft.com/bing/v7.0/news/search")
+bing_key = "24f21c96abbf401bac1b357a27840706"
+bing_client = NewsSearchClient(credentials=CognitiveServicesCredentials(bing_key), endpoint="https://cs338stockanalysis.cognitiveservices.azure.com/bing/v7.0")
 
+#client = language.LanguageServiceClient.from_service_account_file('./key.json')
 
-
-client = language.LanguageServiceClient.from_service_account_file('./key.json')
-
-def bing_query(query):
+def old_bing_query(query):
     news_results = bing_client.news.search(query=query, market="en-us", count=5)
     if news_results.value:
         res = ""
@@ -24,6 +22,18 @@ def bing_query(query):
             # print("First news name: {}".format(result.name))
             # print("First news url: {}".format(result.url))
             # print("First news description: {}".format(result.description))
+
+def bing_query(query):
+    search_url = "https://api.cognitive.microsoft.com/bing/v7.0/search"
+    headers = {"Ocp-Apim-Subscription-Key": bing_key}
+    params = {"q": query, "textDecorations": True, "textFormat": "HTML"}
+    response = requests.get(search_url, headers=headers, params=params)
+    response.raise_for_status()
+    search_results = response.json()
+    print(search_results)
+    ##for result in search_results['news']:
+      #  print(result['value']['description'])#['description'])
+
             
             
 def print_result(annotations):
@@ -47,9 +57,9 @@ def analyze(query):
     document = types.Document(
         content=content,
         type=enums.Document.Type.PLAIN_TEXT)
-    annotations = client.analyze_sentiment(document=document)
-    return [annotations, raw_news]
+    #annotations = client.analyze_sentiment(document=document)
+    #return [annotations, raw_news]
 
 
 if __name__ == '__main__':
-    analyze("$tsla")
+    bing_query("$tsla")
