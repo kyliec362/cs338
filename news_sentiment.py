@@ -1,44 +1,60 @@
-from google.cloud.language import enums
-from google.cloud.language import types
+from googleapiclient import discovery
+import httplib2
+from oauth2client.client import GoogleCredentials
 import requests
-bing_key = "24f21c96abbf401bac1b357a27840706"
 
-def bing_query(query):
-    search_url = "https://api.cognitive.microsoft.com/bing/v7.0/search"
-    headers = {"Ocp-Apim-Subscription-Key": bing_key}
-    params = {"q": query, "textDecorations": True, "textFormat": "HTML"}
-    response = requests.get(search_url, headers=headers, params=params)
-    response.raise_for_status()
-    search_results = response.json()
-    for result in search_results['news']['value']:
-        print(result['description'])
+DISCOVERY_URL = ('https://{api}.googleapis.com/'
+                '$discovery/rest?version={apiVersion}')
 
+google_sentiment_service = ""
 
-#TODO make working
-def print_result(annotations):
-    score = annotations.document_sentiment.score
-    magnitude = annotations.document_sentiment.magnitude
+def get_news_for_stock(stock):
+    query = 'q=' + stock + '&'
+    NEWS_URL = ('http://newsapi.org/v2/everything?'
+                + query +
+                'from=2020-05-21&'
+                'sortBy=popularity&'
+                'apiKey=fae0fb9f9ec04ab7a007c4dd3b1ea220')
+    response = requests.get(NEWS_URL)
+    return response.json()
 
-    for index, sentence in enumerate(annotations.sentences):
-        print(sentence)
-        sentence_sentiment = sentence.sentiment.score
-        print('Sentence {} has a sentiment score of {}'.format(
-            index, sentence_sentiment))
+def print_news_result_descriptions(stock):
+    articles = get_news_for_stock(stock)['articles']
+    for article in articles:
+        print(article['description'])
 
-    print('Overall Sentiment: score of {} with magnitude of {}'.format(
-        score, magnitude))
-    return 0
+def initialize_google_sentiment_service():
+    http = httplib2.Http()
 
-#TODO make workiing
-def analyze(query):
-    """Run a sentiment analysis request on text."""
-    content, raw_news = bing_query(query)
-    document = types.Document(
-        content=content,
-        type=enums.Document.Type.PLAIN_TEXT)
-    #annotations = client.analyze_sentiment(document=document)
-    #return [annotations, raw_news]
+    credentials = GoogleCredentials.get_application_default().create_scoped(
+        ['https://www.googleapis.com/auth/cloud-platform'])
 
+    credentials.authorize(http)
+
+    google_sentiment_service = discovery.build('language', 'v1beta1',
+                              http=http, discoveryServiceUrl=DISCOVERY_URL)
+
+    return google_sentiment_service
+
+def get_sentiment(text, google_sentiment_service):
+    service_request = google_sentiment_service.documents().analyzeSentiment(
+        body={
+            'document': {
+                'type': 'PLAIN_TEXT',
+                'content': text,
+            }
+        })
+    response = service_request.execute()
+    polarity = response['documentSentiment']['polarity']
+    magnitude = response['documentSentiment']['magnitude']
+    print('Description: ', text)
+    print('Sentiment: polarity of %s with magnitude of %s \n' % (polarity, magnitude))
+
+def get_article_sentiments():
+    google_sentiment_service = initialize_google_sentiment_service()
+    articles = get_news_for_stock("$tsla")['articles']
+    for article in articles:
+        get_sentiment(article['description'], google_sentiment_service)
 
 if __name__ == '__main__':
-    bing_query("$tsla")
+    get_article_sentiments()
