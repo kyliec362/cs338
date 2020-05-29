@@ -1,7 +1,8 @@
-from googleapiclient import discovery
-import httplib2
-from oauth2client.client import GoogleCredentials
 import requests
+from google.cloud import language
+from google.cloud.language import enums
+from google.cloud.language import types
+
 
 DISCOVERY_URL = ('https://{api}.googleapis.com/'
                 '$discovery/rest?version={apiVersion}')
@@ -23,35 +24,21 @@ def print_news_result_descriptions(stock):
     for article in articles:
         print(article['description'])
 
-def initialize_google_sentiment_service():
-    http = httplib2.Http()
-
-    credentials = GoogleCredentials.get_application_default().create_scoped(
-        ['https://www.googleapis.com/auth/cloud-platform'])
-
-    credentials.authorize(http)
-
-    google_sentiment_service = discovery.build('language', 'v1beta1',
-                              http=http, discoveryServiceUrl=DISCOVERY_URL)
-
-    return google_sentiment_service
-
 def get_sentiment(text, google_sentiment_service):
-    service_request = google_sentiment_service.documents().analyzeSentiment(
-        body={
-            'document': {
-                'type': 'PLAIN_TEXT',
-                'content': text,
-            }
-        })
-    response = service_request.execute()
-    polarity = response['documentSentiment']['polarity']
-    magnitude = response['documentSentiment']['magnitude']
-    print('Description: ', text)
-    print('Sentiment: polarity of %s with magnitude of %s \n' % (polarity, magnitude))
+    client = language.LanguageServiceClient()
+
+    document = types.Document(
+        content=text,
+        type=enums.Document.Type.PLAIN_TEXT)
+
+    sentiment = client.analyze_sentiment(document=document).document_sentiment
+
+    print('Description: {}'.format(text))
+    print('Sentiment score: {}, magnitude: {}'.format(sentiment.score, sentiment.magnitude))
+
 
 def get_article_sentiments():
-    google_sentiment_service = initialize_google_sentiment_service()
+    # google_sentiment_service = initialize_google_sentiment_service()
     articles = get_news_for_stock("$tsla")['articles']
     for article in articles:
         get_sentiment(article['description'], google_sentiment_service)
