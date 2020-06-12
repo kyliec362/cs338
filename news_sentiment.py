@@ -2,7 +2,11 @@ import requests
 from google.cloud import language
 from google.cloud.language import enums
 from google.cloud.language import types
+from flask import flash
 
+import os
+
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials.json"
 
 DISCOVERY_URL = ('https://{api}.googleapis.com/'
                 '$discovery/rest?version={apiVersion}')
@@ -35,13 +39,16 @@ def get_sentiment(text, google_sentiment_service):
 
     print('Description: {}'.format(text))
     print('Sentiment score: {}, magnitude: {}'.format(sentiment.score, sentiment.magnitude))
+    return 'Description: {}'.format(text) + 'Sentiment score: {}, magnitude: {}'.format(sentiment.score, sentiment.magnitude)
 
 
-def get_article_sentiments():
+def get_article_sentiments(query):
     # google_sentiment_service = initialize_google_sentiment_service()
-    articles = get_news_for_stock("$tsla")['articles']
+    articles = get_news_for_stock(query)['articles']
+    results = []
     for article in articles:
-        get_sentiment(article['description'], google_sentiment_service)
+        results[article['description']] = get_sentiment(article['description'], google_sentiment_service)
+    return results
 
 if __name__ == '__main__':
-    get_article_sentiments()
+    get_article_sentiments("$tsla")
