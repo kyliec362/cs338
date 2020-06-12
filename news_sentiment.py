@@ -37,8 +37,8 @@ def get_sentiment(text, google_sentiment_service):
 
     sentiment = client.analyze_sentiment(document=document).document_sentiment
 
-    print('Description: {}'.format(text))
-    print('Sentiment score: {}, magnitude: {}'.format(sentiment.score, sentiment.magnitude))
+    # print('Description: {}'.format(text))
+    # print('Sentiment score: {}, magnitude: {}'.format(sentiment.score, sentiment.magnitude))
     return 'Description: {}'.format(text) + 'Sentiment score: {}, magnitude: {}'.format(sentiment.score, sentiment.magnitude)
 
 
@@ -47,7 +47,8 @@ def get_article_sentiments(query):
     articles = get_news_for_stock(query)['articles']
     results = []
     for article in articles:
-        results[article['description']] = get_sentiment(article['description'], google_sentiment_service)
+        results.append((article['description'], get_sentiment(article['description'], google_sentiment_service))) # get_sentiment(article['description'], google_sentiment_service)
+    print(results)
     return results
 
 if __name__ == '__main__':
